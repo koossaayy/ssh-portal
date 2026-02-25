@@ -1,0 +1,10 @@
+# nixpacks.toml — used if you pick "Nixpacks" build pack in Coolify
+
+[phases.setup]
+nixPkgs = ["go", "openssh"]
+
+[phases.build]
+cmds = ["go build -ldflags='-s -w' -o ssh-portal ."]
+
+[start]
+cmd = "mkdir -p /app/data/.ssh && [ ! -f /app/data/.ssh/id_ed25519 ] && ssh-keygen -t ed25519 -f /app/data/.ssh/id_ed25519 -N '' || true && ./ssh-portal"

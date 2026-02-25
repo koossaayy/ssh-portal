@@ -1,0 +1,5 @@
+ssh-portal
+/data/
+*.exe
+*.test
+.env

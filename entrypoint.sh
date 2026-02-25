@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-KEY_PATH="/app/data/.ssh/id_ed25519"
+KEY_PATH="/app/app/data/.ssh/id_ed25519"
 
 echo "📁 Data dir contents:"
 ls -la /app/data/ 2>/dev/null || echo "(empty or missing)"

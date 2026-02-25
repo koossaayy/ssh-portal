@@ -2,6 +2,8 @@ package portfolio
 
 import (
 	"fmt"
+	"os/exec"
+	"runtime"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -29,8 +31,8 @@ var projects = []Project{
 	{
 		Name:   "Laralingo",
 		Desc:   "Manage your localization & translation process as code, and never miss anything.",
-		Tech:   []string{"Laravel", "React", "Inertia", "GitHub", "GitLab", "AI & Translation APIs"},
-		URL:    "laralingo.app",
+		Tech:   []string{"Laravel", "React", "Inertia", "GitHub", "GitLab", "AI APIs"},
+		URL:    "https://laralingo.app",
 		Status: "Closed Preview",
 		Emoji:  "🔵",
 	},
@@ -46,7 +48,7 @@ var projects = []Project{
 		Name:   "Devs.tn",
 		Desc:   "Linktree but for Tunisian devs. Because we deserve our own corner of the internet.",
 		Tech:   []string{"Laravel", "React", "Inertia"},
-		URL:    "devs.tn",
+		URL:    "https://devs.tn",
 		Status: "Ongoing",
 		Emoji:  "🟡",
 	},
@@ -54,13 +56,12 @@ var projects = []Project{
 		Name:   "SUPER DUPER SECRET PROJECT",
 		Desc:   "SUPER DUPER SECRET DESCRIPTION. But lawyers gonna love it. 🤫",
 		Tech:   []string{"Laravel", "React", "Inertia"},
-		URL:    "¯\\_(ツ)_/¯",
+		URL:    "",
 		Status: "Ongoing",
 		Emoji:  "🔴",
 	},
 }
 
-// Tech badge colors — each tech gets its own vibe
 var techColors = map[string]struct{ bg, fg string }{
 	"Go":         {"#00ADD8", "#FFFFFF"},
 	"Wish":       {"#BD93F9", "#FFFFFF"},
@@ -80,16 +81,45 @@ var techColors = map[string]struct{ bg, fg string }{
 }
 
 var statusColors = map[string]string{
-	"Live":        "#50FA7B",
-	"In Progress": "#8BE9FD",
-	"Ongoing":     "#F1FA8C",
+	"Live":           "#50FA7B",
+	"Closed Preview": "#8BE9FD",
+	"Ongoing":        "#F1FA8C",
+}
+
+// openURL opens a URL in the user's browser on the remote machine
+func openURL(url string) {
+	if url == "" {
+		return
+	}
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "linux":
+		cmd = exec.Command("xdg-open", url)
+	case "darwin":
+		cmd = exec.Command("open", url)
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+	default:
+		return
+	}
+	_ = cmd.Start()
+}
+
+// openURLMsg is sent after enter is pressed to trigger the open
+type openURLMsg string
+
+func openURLCmd(url string) tea.Cmd {
+	return func() tea.Msg {
+		return openURLMsg(url)
+	}
 }
 
 type Model struct {
-	renderer *lipgloss.Renderer
-	width    int
-	height   int
-	cursor   int
+	renderer  *lipgloss.Renderer
+	width     int
+	height    int
+	cursor    int
+	lastOpened string
 }
 
 func New(r *lipgloss.Renderer, w, h int) Model {
@@ -99,8 +129,9 @@ func New(r *lipgloss.Renderer, w, h int) Model {
 func (m Model) Init() tea.Cmd { return nil }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if key, ok := msg.(tea.KeyMsg); ok {
-		switch key.String() {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
 		case "up", "k":
 			if m.cursor > 0 {
 				m.cursor--
@@ -109,7 +140,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor < len(projects)-1 {
 				m.cursor++
 			}
+		case "enter":
+			p := projects[m.cursor]
+			if p.URL != "" && strings.HasPrefix(p.URL, "http") {
+				m.lastOpened = p.URL
+				return m, openURLCmd(p.URL)
+			}
 		}
+	case openURLMsg:
+		openURL(string(msg))
 	}
 	return m, nil
 }
@@ -124,6 +163,7 @@ func (m Model) View() string {
 	pink   := lipgloss.Color("#FF79C6")
 	cyan   := lipgloss.Color("#8BE9FD")
 	yellow := lipgloss.Color("#F1FA8C")
+	green  := lipgloss.Color("#50FA7B")
 	fg     := lipgloss.Color("#F8F8F2")
 	subtle := lipgloss.Color("#6272A4")
 
@@ -154,7 +194,6 @@ func (m Model) View() string {
 			Padding(0, 2).
 			Width(m.width - 8)
 
-		// Status badge
 		statusColor := lipgloss.Color("#6272A4")
 		if c, ok := statusColors[p.Status]; ok {
 			statusColor = lipgloss.Color(c)
@@ -166,13 +205,11 @@ func (m Model) View() string {
 			Padding(0, 1).
 			Render(p.Emoji + " " + p.Status)
 
-		// Name style
 		nameStyle := r.NewStyle().Foreground(cyan).Bold(true)
 		if isSelected {
 			nameStyle = r.NewStyle().Foreground(yellow).Bold(true)
 		}
 
-		// Tech badges with per-tech colors
 		var tags []string
 		for _, t := range p.Tech {
 			bgHex := "#6272A4"
@@ -191,13 +228,21 @@ func (m Model) View() string {
 		}
 		techLine := strings.Join(tags, " ")
 
+		// URL line — show "press enter to open" hint if selected and has URL
+		urlDisplay := p.URL
+		urlSuffix := ""
+		if isSelected && strings.HasPrefix(p.URL, "http") {
+			urlSuffix = r.NewStyle().Foreground(green).Italic(true).Render("  ← enter to open")
+		}
+
 		content := fmt.Sprintf(
-			"%s  %s\n\n%s\n\n%s  %s\n%s",
+			"%s  %s\n\n%s\n\n%s  %s%s\n%s",
 			nameStyle.Render(p.Name),
 			statusBadge,
 			r.NewStyle().Foreground(fg).Render(p.Desc),
 			r.NewStyle().Foreground(subtle).Render("🔗"),
-			r.NewStyle().Foreground(cyan).Render(p.URL),
+			r.NewStyle().Foreground(cyan).Render(urlDisplay),
+			urlSuffix,
 			techLine,
 		)
 
@@ -205,7 +250,13 @@ func (m Model) View() string {
 		sb.WriteString("\n")
 	}
 
+	// Show last opened URL as confirmation
+	if m.lastOpened != "" {
+		sb.WriteString(r.NewStyle().Foreground(green).Italic(true).Render(fmt.Sprintf("  ✅ Opened %s in your browser!", m.lastOpened)))
+		sb.WriteString("\n")
+	}
+
 	sb.WriteString("\n")
-	sb.WriteString(footStyle.Render("  ↑↓ / j k to browse  •  esc to go back"))
+	sb.WriteString(footStyle.Render("  ↑↓ / j k to browse  •  enter to open link  •  esc to go back"))
 	return sb.String()
 }

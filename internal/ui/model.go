@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -28,6 +29,26 @@ const banner = `
  ██║  ██╗╚██████╔╝╚██████╔╝███████║███████║██║  ██║██║  ██║   ██║      ██║   
  ╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝      ╚═╝  `
 
+var pirateQuotes = []string{
+	"\"Not all treasure is silver and gold, mate.\" 🏴‍☠️",
+	"\"This is the day you will always remember as the day you almost caught Captain Jack Sparrow.\" 🦜",
+	"\"Why is the rum always gone? ...Oh, that's why.\" 🥃",
+	"\"The problem is not the problem. The problem is your attitude about the problem.\" ☠️",
+	"\"Me? I'm dishonest. And a dishonest man you can always trust to be dishonest.\" 🧭",
+	"\"Nobody move! I dropped me brain.\" 💀",
+	"\"I love those moments. I like to wave at them as they pass by.\" 🌊",
+	"\"Did everyone see that? Because I will not be doing it again.\" 🪝",
+	"\"You seem somewhat familiar. Have I threatened you before?\" ⚔️",
+	"\"Wherever we want to go, we go.\" 🗺️",
+	"\"“UP IS DOWN”? Well that's just maddeningly unhelpful. Why are these things never clear?\" 😕",
+	"\"I've got a jar of dirt\" ⚔️",
+	"\"Crazy people don't know they're crazy. I know that I'm crazy, therefore I'm not crazy. Isn't that crazy?\" 😀",
+	"\"Why fight when you can negotiate?\" 🫙",
+	"\"Stop blowing holes in my ship!!\" ⚓",
+	"\"No! Not good! Stop! Not good! What are you doing? You burned all the food, the shade... the rum\" 🍺",
+
+}
+
 type menuItem struct {
 	label string
 	icon  string
@@ -49,6 +70,7 @@ type MainModel struct {
 	current   view
 	portfolio portfolio.Model
 	game      game.Model
+	quote     string
 }
 
 func NewMainModel(renderer *lipgloss.Renderer, w, h int) MainModel {
@@ -60,6 +82,7 @@ func NewMainModel(renderer *lipgloss.Renderer, w, h int) MainModel {
 		current:   viewHome,
 		portfolio: portfolio.New(renderer, w, h),
 		game:      game.New(renderer, w, h),
+		quote:     pirateQuotes[rand.Intn(len(pirateQuotes))],
 	}
 }
 
@@ -171,7 +194,7 @@ func (m MainModel) homeView() string {
 		sb.WriteString(bannerStyle.Render("  ✦ ssh.koossaayy.tn ✦"))
 	}
 	sb.WriteString("\n")
-	sb.WriteString(taglineStyle.Render("  Welcome, traveler. You've reached a portal to the unknown. 🌌"))
+	sb.WriteString(taglineStyle.Render("  " + m.quote))
 	sb.WriteString("\n\n")
 
 	sb.WriteString(r.NewStyle().Foreground(yellow).Bold(true).Render("  Navigate"))
@@ -199,7 +222,6 @@ func (m MainModel) aboutView() string {
 	pink   := lipgloss.Color("#FF79C6")
 	cyan   := lipgloss.Color("#8BE9FD")
 	yellow := lipgloss.Color("#F1FA8C")
-	green  := lipgloss.Color("#50FA7B")
 	fg     := lipgloss.Color("#F8F8F2")
 	subtle := lipgloss.Color("#6272A4")
 	purple := lipgloss.Color("#9B72CF")
@@ -221,28 +243,33 @@ func (m MainModel) aboutView() string {
 	sb.WriteString("\n\n")
 
 	whoami := fmt.Sprintf(
-		"%s\n\n%s\n%s\n%s\n\n%s\n%s\n\n%s\n%s %s %s %s",
+		"%s\n\n%s\n%s\n%s\n\n%s\n%s\n\n%s\n%s %s %s %s %s %s %s",
 		hlStyle.Render("  Hey, I'm Koossaayy! 👾"),
 		labelStyle.Render("  What I do:"),
 		valStyle.Render("  Developer, homelab nerd, terminal maximalist. I build things,"),
-		valStyle.Render("  break them, learn why, and repeat."),
+		valStyle.Render("  break them, learn why, and repeat. Because why not 🤷‍♂️"),
 		labelStyle.Render("  Currently into:"),
-		valStyle.Render("  Self-hosting everything, Go, Rust, and making the CLI beautiful."),
+		valStyle.Render("  Laravel, Serious DevSecOps, Self-hosting everything, Go, CLI aesthetics."),
 		labelStyle.Render("  Stack:"),
-		r.NewStyle().Background(purple).Foreground(lipgloss.Color("#282A36")).Padding(0, 1).Render("Go"),
-		r.NewStyle().Background(cyan).Foreground(lipgloss.Color("#282A36")).Padding(0, 1).Render("Docker"),
-		r.NewStyle().Background(green).Foreground(lipgloss.Color("#282A36")).Padding(0, 1).Render("Linux"),
-		r.NewStyle().Background(pink).Foreground(lipgloss.Color("#282A36")).Padding(0, 1).Render("Coolify"),
+		r.NewStyle().Background(lipgloss.Color("#F55673")).Foreground(fg).Bold(true).Padding(0, 1).Render("Laravel & PHP (I mean of course)"),
+		r.NewStyle().Background(lipgloss.Color("#6272FF")).Foreground(fg).Bold(true).Padding(0, 1).Render("Finetuning Models"),
+		r.NewStyle().Background(lipgloss.Color("#F1FA8C")).Foreground(lipgloss.Color("#282A36")).Bold(true).Padding(0, 1).Render("React / JS"),
+		r.NewStyle().Background(lipgloss.Color("#00ADD8")).Foreground(fg).Bold(true).Padding(0, 1).Render("Go"),
+		r.NewStyle().Background(lipgloss.Color("#2496ED")).Foreground(fg).Bold(true).Padding(0, 1).Render("Docker (I hate it though)"),
+		r.NewStyle().Background(lipgloss.Color("#FFA500")).Foreground(lipgloss.Color("#282A36")).Bold(true).Padding(0, 1).Render("Linux but mostly Windows (MacOS soon)"),
+		r.NewStyle().Background(lipgloss.Color("#7B42BC")).Foreground(fg).Bold(true).Padding(0, 1).Render("Coolify FTW"),
 	)
 	sb.WriteString(boxStyle.Render(whoami))
 	sb.WriteString("\n\n")
 
 	links := fmt.Sprintf(
-		"%s\n%s  %s\n%s  %s\n%s  %s",
+		"%s\n%s  %s\n%s  %s\n%s  %s\n%s  %s\n%s  %s",
 		labelStyle.Render("  Find me:"),
 		r.NewStyle().Foreground(cyan).Render("  🌐 Web   "), valStyle.Render("https://koossaayy.tn"),
-		r.NewStyle().Foreground(cyan).Render("  🐙 GitHub"), valStyle.Render("github.com/koossaayy"),
-		r.NewStyle().Foreground(cyan).Render("  📡 SSH   "), valStyle.Render("ssh ssh.koossaayy.tn -p 2222  ← you're here!"),
+		r.NewStyle().Foreground(cyan).Render("  🐙 GitHub"), valStyle.Render("https://github.com/koossaayy"),
+		r.NewStyle().Foreground(cyan).Render("  🐦 Twitter"), valStyle.Render("https://x.com/koossaayy"),
+		r.NewStyle().Foreground(cyan).Render("  🔗 LinkedIn"), valStyle.Render("https://www.linkedin.com/in/koossaayy/"),
+		r.NewStyle().Foreground(cyan).Render("  📡 SSH   "), valStyle.Render("ssh ssh.koossaayy.tn -p 69  ← yes, port 69. yes, on purpose. Thank you"),
 	)
 	sb.WriteString(boxStyle.Render(links))
 

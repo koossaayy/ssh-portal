@@ -14,37 +14,75 @@ type Project struct {
 	Tech   []string
 	URL    string
 	Status string
+	Emoji  string
 }
 
 var projects = []Project{
 	{
-		Name:   "ssh.koossaayy.tn",
+		Name:   "SSH Portal",
 		Desc:   "This very SSH portal — built with Charm's wish + bubbletea stack. Because why not.",
 		Tech:   []string{"Go", "Wish", "BubbleTea", "Lipgloss"},
-		URL:    "ssh ssh.koossaayy.tn",
-		Status: "🟢 Live",
+		URL:    "ssh ssh.koossaayy.tn -p 69",
+		Status: "Live",
+		Emoji:  "🟢",
 	},
 	{
-		Name:   "Project Alpha",
-		Desc:   "A mysterious project shrouded in secrecy. Details classified.",
-		Tech:   []string{"Rust", "WebAssembly"},
-		URL:    "github.com/koossaayy/alpha",
-		Status: "🔵 In Progress",
+		Name:   "Laralingo",
+		Desc:   "Manage your localization & translation process as code, and never miss anything.",
+		Tech:   []string{"Laravel", "React", "Inertia", "GitHub", "GitLab", "AI & Translation APIs"},
+		URL:    "laralingo.app",
+		Status: "Closed Preview",
+		Emoji:  "🔵",
 	},
 	{
-		Name:   "Homelab",
-		Desc:   "A self-hosted everything setup powered by Coolify, Docker, and pure stubbornness.",
-		Tech:   []string{"Coolify", "Docker", "Nginx", "Cloudflare"},
+		Name:   "Personal Blog",
+		Desc:   "Well, I got to write something somewhere right?",
+		Tech:   []string{"Laravel", "Statamic"},
 		URL:    "https://koossaayy.tn",
-		Status: "🟢 Live",
+		Status: "Live",
+		Emoji:  "🟢",
 	},
 	{
-		Name:   "Terminal Experiments",
-		Desc:   "A graveyard of CLI tools, shell scripts, and TUI experiments.",
-		Tech:   []string{"Go", "Python", "Bash"},
-		URL:    "github.com/koossaayy",
-		Status: "🟡 Ongoing",
+		Name:   "Devs.tn",
+		Desc:   "Linktree but for Tunisian devs. Because we deserve our own corner of the internet.",
+		Tech:   []string{"Laravel", "React", "Inertia"},
+		URL:    "devs.tn",
+		Status: "Ongoing",
+		Emoji:  "🟡",
 	},
+	{
+		Name:   "SUPER DUPER SECRET PROJECT",
+		Desc:   "SUPER DUPER SECRET DESCRIPTION. But lawyers gonna love it. 🤫",
+		Tech:   []string{"Laravel", "React", "Inertia"},
+		URL:    "¯\\_(ツ)_/¯",
+		Status: "Ongoing",
+		Emoji:  "🔴",
+	},
+}
+
+// Tech badge colors — each tech gets its own vibe
+var techColors = map[string]struct{ bg, fg string }{
+	"Go":         {"#00ADD8", "#FFFFFF"},
+	"Wish":       {"#BD93F9", "#FFFFFF"},
+	"BubbleTea":  {"#FF79C6", "#282A36"},
+	"Lipgloss":   {"#FF5555", "#FFFFFF"},
+	"Laravel":    {"#F55673", "#FFFFFF"},
+	"React":      {"#61DAFB", "#282A36"},
+	"Inertia":    {"#9553E9", "#FFFFFF"},
+	"GitHub":     {"#F8F8F2", "#282A36"},
+	"GitLab":     {"#FC6D26", "#FFFFFF"},
+	"AI APIs":    {"#F1FA8C", "#282A36"},
+	"Statamic":   {"#0069FF", "#FFFFFF"},
+	"Docker":     {"#2496ED", "#FFFFFF"},
+	"Nginx":      {"#009639", "#FFFFFF"},
+	"Cloudflare": {"#F48120", "#FFFFFF"},
+	"Rust":       {"#CE422B", "#FFFFFF"},
+}
+
+var statusColors = map[string]string{
+	"Live":        "#50FA7B",
+	"In Progress": "#8BE9FD",
+	"Ongoing":     "#F1FA8C",
 }
 
 type Model struct {
@@ -86,23 +124,25 @@ func (m Model) View() string {
 	pink   := lipgloss.Color("#FF79C6")
 	cyan   := lipgloss.Color("#8BE9FD")
 	yellow := lipgloss.Color("#F1FA8C")
-	green  := lipgloss.Color("#50FA7B")
 	fg     := lipgloss.Color("#F8F8F2")
 	subtle := lipgloss.Color("#6272A4")
-	purple := lipgloss.Color("#9B72CF")
 
 	titleStyle := r.NewStyle().Foreground(pink).Bold(true)
 	footStyle  := r.NewStyle().Foreground(subtle).Italic(true)
+	countStyle := r.NewStyle().Foreground(subtle)
 
 	var sb strings.Builder
 	sb.WriteString("\n")
 	sb.WriteString(titleStyle.Render("  🚀 Portfolio"))
+	sb.WriteString("  ")
+	sb.WriteString(countStyle.Render(fmt.Sprintf("(%d/%d)", m.cursor+1, len(projects))))
 	sb.WriteString("\n")
 	sb.WriteString(r.NewStyle().Foreground(subtle).Italic(true).Render("  Things I've built, broken, and learned from."))
 	sb.WriteString("\n\n")
 
 	for i, p := range projects {
 		isSelected := i == m.cursor
+
 		borderColor := subtle
 		if isSelected {
 			borderColor = pink
@@ -114,26 +154,47 @@ func (m Model) View() string {
 			Padding(0, 2).
 			Width(m.width - 8)
 
+		// Status badge
+		statusColor := lipgloss.Color("#6272A4")
+		if c, ok := statusColors[p.Status]; ok {
+			statusColor = lipgloss.Color(c)
+		}
+		statusBadge := r.NewStyle().
+			Foreground(lipgloss.Color("#282A36")).
+			Background(statusColor).
+			Bold(true).
+			Padding(0, 1).
+			Render(p.Emoji + " " + p.Status)
+
+		// Name style
+		nameStyle := r.NewStyle().Foreground(cyan).Bold(true)
+		if isSelected {
+			nameStyle = r.NewStyle().Foreground(yellow).Bold(true)
+		}
+
+		// Tech badges with per-tech colors
 		var tags []string
 		for _, t := range p.Tech {
+			bgHex := "#6272A4"
+			fgHex := "#F8F8F2"
+			if colors, ok := techColors[t]; ok {
+				bgHex = colors.bg
+				fgHex = colors.fg
+			}
 			tag := r.NewStyle().
-				Foreground(lipgloss.Color("#282A36")).
-				Background(purple).
+				Foreground(lipgloss.Color(fgHex)).
+				Background(lipgloss.Color(bgHex)).
+				Bold(true).
 				Padding(0, 1).
 				Render(t)
 			tags = append(tags, tag)
 		}
 		techLine := strings.Join(tags, " ")
 
-		nameStyle := r.NewStyle().Foreground(cyan).Bold(true)
-		if isSelected {
-			nameStyle = r.NewStyle().Foreground(yellow).Bold(true)
-		}
-
 		content := fmt.Sprintf(
-			"%s  %s\n%s\n%s  %s\n%s",
+			"%s  %s\n\n%s\n\n%s  %s\n%s",
 			nameStyle.Render(p.Name),
-			r.NewStyle().Foreground(green).Render(p.Status),
+			statusBadge,
 			r.NewStyle().Foreground(fg).Render(p.Desc),
 			r.NewStyle().Foreground(subtle).Render("🔗"),
 			r.NewStyle().Foreground(cyan).Render(p.URL),

@@ -3,6 +3,8 @@ package portfolio
 import (
 	"fmt"
 	"strings"
+	"runtime"
+	"os/exec"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -109,8 +111,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor < len(projects)-1 {
 				m.cursor++
 			}
-		}
+		
+		case "enter":
+			if m.cursor < len(projects)-1{
+				url := projects[m.cursor].URL
+				go openURL(url)
+			}
 	}
+}
 	return m, nil
 }
 
@@ -208,4 +216,32 @@ func (m Model) View() string {
 	sb.WriteString("\n")
 	sb.WriteString(footStyle.Render("  ↑↓ / j k to browse  •  esc to go back"))
 	return sb.String()
+}
+
+func openURL(url string) error {
+
+	var cmd string
+	var args []string
+
+	if strings.HasPrefix(url, "ssh ") {
+		return nil
+	}
+
+	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+		url = "https://" + url
+	}
+	switch runtime.GOOS {
+	case "windows":
+		cmd = "cmd"
+		args = []string{"/c", "start", url}
+	case "darwin":
+		cmd = "open"
+		args = []string{url}
+	case "linux":
+		cmd = "xdg-open"
+		args = []string{url}
+	default:
+		return fmt.Errorf("unsupported platform")
+	}
+	return exec.Command(cmd, args...).Start()
 }
